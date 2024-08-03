@@ -1,15 +1,33 @@
-var builder = WebApplication.CreateBuilder(args);
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using RelayChat_Identity.Models;
 
-// Add services to the container.
+var webBuilder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+webBuilder.Services
+    .AddControllersWithViews()
+    .AddJsonOptions(
+        options =>
+        {
+            options.JsonSerializerOptions.DefaultIgnoreCondition =
+                JsonIgnoreCondition.WhenWritingNull;
+            options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        });
 
-var app = builder.Build();
+webBuilder.Services.AddSwaggerGen();
 
-// Configure the HTTP request pipeline.
+webBuilder.Services.AddDbContext<RelayChatIdentityContext>(
+    options =>
+        options.UseSqlServer(
+            webBuilder.Configuration.GetConnectionString("DbContext"),
+            providerOptions => providerOptions.EnableRetryOnFailure()
+        )
+);
+
+var app = webBuilder.Build();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

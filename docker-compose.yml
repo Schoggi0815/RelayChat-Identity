@@ -1,0 +1,12 @@
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    pull_policy: always
+    container_name: relay-chat-identity-mssql
+    environment:
+      SA_PASSWORD: "on!yForD3v"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - "./data/mssql:/var/opt/mssql:z"

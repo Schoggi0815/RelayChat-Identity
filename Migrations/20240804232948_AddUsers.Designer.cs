@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RelayChat_Identity.Models;
 
@@ -11,9 +12,11 @@ using RelayChat_Identity.Models;
 namespace RelayChat_Identity.Migrations
 {
     [DbContext(typeof(RelayChatIdentityContext))]
-    partial class RelayChatIdentityContextModelSnapshot : ModelSnapshot
+    [Migration("20240804232948_AddUsers")]
+    partial class AddUsers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -164,7 +167,7 @@ namespace RelayChat_Identity.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tests", (string)null);
+                    b.ToTable("Tests");
                 });
 
             modelBuilder.Entity("RelayChat_Identity.Models.User", b =>

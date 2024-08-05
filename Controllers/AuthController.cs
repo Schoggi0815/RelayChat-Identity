@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using RelayChat_Identity.Models;
 using RelayChat_Identity.Models.Dtos;
 using WebAuthn.Net.Models.Protocol.Enums;
+using WebAuthn.Net.Models.Protocol.Json.RegistrationCeremony.CreateCredential;
 using WebAuthn.Net.Models.Protocol.Json.RegistrationCeremony.CreateOptions;
 using WebAuthn.Net.Models.Protocol.RegistrationCeremony.CreateOptions;
 using WebAuthn.Net.Services.RegistrationCeremony;
+using WebAuthn.Net.Services.RegistrationCeremony.Models.CreateCredential;
 using WebAuthn.Net.Services.RegistrationCeremony.Models.CreateOptions;
 using WebAuthn.Net.Services.Serialization.Cose.Models.Enums;
 
@@ -56,5 +58,24 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
         ), CancellationToken.None);
         
         return Ok(result.Options);
+    }
+    
+    [HttpPost]
+    [Route("registration/2")]
+    [ProducesResponseType(typeof(PublicKeyCredentialCreationOptionsJSON), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Login([FromBody] RegistrationResponseJSON registrationResponse)
+    {
+        var result = await registrationCeremonyService.CompleteCeremonyAsync(httpContext: HttpContext,
+            request: new CompleteRegistrationCeremonyRequest(
+                registrationCeremonyId: registrationResponse.Id,
+                description: "Windows Hello Authentication",
+                response: registrationResponse),
+            cancellationToken: CancellationToken.None);
+
+        if (!result.HasError)
+        {
+            return Ok();
+        }
+        return Forbid();
     }
 }

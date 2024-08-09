@@ -3,9 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using RelayChat_Identity.Models;
 using RelayChat_Identity.Models.Dtos;
 using WebAuthn.Net.Models.Protocol.Enums;
+using WebAuthn.Net.Models.Protocol.Json.AuthenticationCeremony.VerifyAssertion;
 using WebAuthn.Net.Models.Protocol.Json.RegistrationCeremony.CreateCredential;
 using WebAuthn.Net.Models.Protocol.Json.RegistrationCeremony.CreateOptions;
 using WebAuthn.Net.Models.Protocol.RegistrationCeremony.CreateOptions;
+using WebAuthn.Net.Services.AuthenticationCeremony;
+using WebAuthn.Net.Services.AuthenticationCeremony.Models.CreateOptions;
+using WebAuthn.Net.Services.AuthenticationCeremony.Models.VerifyAssertion;
 using WebAuthn.Net.Services.RegistrationCeremony;
 using WebAuthn.Net.Services.RegistrationCeremony.Models.CreateCredential;
 using WebAuthn.Net.Services.RegistrationCeremony.Models.CreateOptions;
@@ -15,15 +19,14 @@ namespace RelayChat_Identity.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]
-public class AuthController(IRegistrationCeremonyService registrationCeremonyService) : ControllerBase
+public class AuthController(IRegistrationCeremonyService registrationCeremonyService, IAuthenticationCeremonyService authenticationCeremonyService) : ControllerBase
 {
     [HttpPost]
     [Route("registration/1")]
-    [ProducesResponseType(typeof(PublicKeyCredentialCreationOptionsJSON), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+    public async Task<IActionResult> Register1([FromBody] LoginDto loginDto)
     {
         var result = await registrationCeremonyService.BeginCeremonyAsync(HttpContext, new BeginRegistrationCeremonyRequest(
-            origins: null,
+            origins: new RegistrationCeremonyOriginParameters(["http://localhost:5173"]),
             topOrigins: null,
             rpDisplayName: "RelayChat",
             user: new PublicKeyCredentialUserEntity(
@@ -57,19 +60,59 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
             extensions: null
         ), CancellationToken.None);
         
-        return Ok(result.Options);
+        return Ok(new {Options = new {PublicKey = result.Options}, result.RegistrationCeremonyId});
     }
     
     [HttpPost]
     [Route("registration/2")]
-    [ProducesResponseType(typeof(PublicKeyCredentialCreationOptionsJSON), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Login([FromBody] RegistrationResponseJSON registrationResponse)
+    public async Task<IActionResult> Register2([FromBody] RegistrationResponse registrationResponse)
     {
         var result = await registrationCeremonyService.CompleteCeremonyAsync(httpContext: HttpContext,
             request: new CompleteRegistrationCeremonyRequest(
-                registrationCeremonyId: registrationResponse.Id,
-                description: "Windows Hello Authentication",
-                response: registrationResponse),
+                registrationCeremonyId: registrationResponse.RegistrationCeremonyId,
+                description: "Passkey",
+                response: registrationResponse.ResponseJson),
+            cancellationToken: CancellationToken.None);
+
+        if (!result.HasError)
+        {
+            
+            
+            return Ok();
+        }
+        return Forbid();
+    }
+
+    [HttpPost("login/1")]
+    public async Task<IActionResult> Login1()
+    {
+        var result = await authenticationCeremonyService.BeginCeremonyAsync(
+            httpContext: HttpContext,
+            request: new BeginAuthenticationCeremonyRequest(
+                origins: new AuthenticationCeremonyOriginParameters(["http://localhost:5173"]),
+                topOrigins: null,
+                userHandle: null,
+                challengeSize: 32,
+                timeout: 300_000,
+                allowCredentials: AuthenticationCeremonyIncludeCredentials.AllExisting(),
+                userVerification: UserVerificationRequirement.Required,
+                hints: null,
+                attestation: null,
+                attestationFormats: null,
+                extensions: null),
+            cancellationToken: CancellationToken.None);
+
+        return Ok(new {Options = new {PublicKey = result.Options}, result.AuthenticationCeremonyId});
+    }
+    
+    [HttpPost("login/2")]
+    public async Task<IActionResult> Login2([FromBody] LoginResponse loginResponse)
+    {
+        var result = await authenticationCeremonyService.CompleteCeremonyAsync(
+            httpContext: HttpContext,
+            request: new CompleteAuthenticationCeremonyRequest(
+                authenticationCeremonyId: loginResponse.AuthenticationCeremonyId,
+                response: loginResponse.ResponseJson),
             cancellationToken: CancellationToken.None);
 
         if (!result.HasError)
@@ -78,4 +121,8 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
         }
         return Forbid();
     }
+
+    public record RegistrationResponse(RegistrationResponseJSON ResponseJson, string RegistrationCeremonyId);
+
+    public record LoginResponse(AuthenticationResponseJSON ResponseJson, string AuthenticationCeremonyId);
 }

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -35,41 +36,13 @@ webBuilder.Services.AddDbContext<RelayChatIdentityContext>(
 webBuilder.Services.AddIdentity<User, Role>()
     .AddEntityFrameworkStores<RelayChatIdentityContext>();
 
-webBuilder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.SaveToken = true;
-    options.RequireHttpsMetadata = false;
-    options.TokenValidationParameters = new TokenValidationParameters
+webBuilder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.ASCII
-                .GetBytes(webBuilder.Configuration
-                              .GetSection(nameof(AppSettings.JWT))
-                              .GetValue<string>(nameof(JwtAppSettings.Secret)) ??
-                          throw new Exception("NO SIGNING KEY DEFINED!")
-                ))
-    };
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        options.SlidingExpiration = true;
+    });
 
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            var accessToken = context.Request.Query["access_token"];
-
-            var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/signalr")) context.Token = accessToken;
-
-            return Task.CompletedTask;
-        }
-    };
-});
 webBuilder.Services.Configure<IdentityOptions>(options =>
 {
     options.User.RequireUniqueEmail = true;
@@ -92,6 +65,8 @@ webBuilder.Services.AddWebAuthnSqlServer(configureSqlServer: sqlServer =>
 });
 
 webBuilder.Services.AddScoped<AppSettings>();
+webBuilder.Services.AddScoped<RegistrationCeremonyHandleService>();
+webBuilder.Services.AddScoped<AuthenticationCeremonyHandleService>();
 
 var app = webBuilder.Build();
 
@@ -109,6 +84,8 @@ if (app.Environment.IsProduction())
 
 app.UseStaticFiles();
 app.UseRouting();
+
+app.UseCookiePolicy();
 
 app.UseAuthentication();
 app.UseAuthorization();

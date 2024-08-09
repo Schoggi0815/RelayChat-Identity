@@ -3,6 +3,7 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/Migrations/Sql/001_InitalTest.sql" dialect="AZURE" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/002_AddUsers.sql" dialect="AZURE" />
+    <file url="file://$PROJECT_DIR$/Migrations/Sql/003_RemoveRefreshToken.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/WebAuthn/WebAuthnSetup.sql" dialect="AZURE" />
   </component>
 </project>

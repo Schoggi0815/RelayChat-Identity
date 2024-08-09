@@ -1,13 +1,13 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RelayChat_Identity.Models;
 using RelayChat_Identity.Services;
-using WebAuthn.Net.Storage.SqlServer.Configuration.DependencyInjection;
 
 var webBuilder = WebApplication.CreateBuilder(args);
 
@@ -85,10 +85,13 @@ webBuilder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireNonAlphanumeric = false;
 });
 
-webBuilder.Services.AddWebAuthnSqlServer(configureSqlServer: sqlServer =>
+webBuilder.Services.AddFido2(options =>
 {
-    sqlServer.ConnectionString = webBuilder.Configuration.GetConnectionString("DbContext") ??
-                                 throw new Exception("DB CONNECTION STRING NOT FOUND!");
+    options.ServerDomain = webBuilder.Configuration.GetSection("fido2").GetValue<string>("serverDomain");
+    options.ServerName = "Relay Chat Identity";
+    options.Origins = [webBuilder.Configuration.GetSection("fido2").GetValue<string>("origin")];
+    options.TimestampDriftTolerance =
+        webBuilder.Configuration.GetSection("fido2").GetValue<int>("timestampDriftTolerance");
 });
 
 webBuilder.Services.AddScoped<AppSettings>();

@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Fido2.AspNet" Version="3.0.1" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.7" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.7">
@@ -16,8 +17,6 @@
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.7" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
-        <PackageReference Include="WebAuthn.Net" Version="1.3.3" />
-        <PackageReference Include="WebAuthn.Net.Storage.SqlServer" Version="1.3.3" />
     </ItemGroup>
 
 </Project>

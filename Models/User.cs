@@ -9,4 +9,9 @@ public class User : IdentityUser<Guid>
 
     [MaxLength(255)]
     public required string DisplayName { get; set; }
+
+    [MaxLength(255)]
+    public string? RefreshToken { get; set; }
+
+    public DateTimeOffset RefreshTokenExpiryTime { get; set; }
 }

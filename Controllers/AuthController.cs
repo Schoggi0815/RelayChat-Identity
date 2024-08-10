@@ -1,8 +1,5 @@
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -12,7 +9,6 @@ using RelayChat_Identity.Services;
 using WebAuthn.Net.Models.Protocol.Enums;
 using WebAuthn.Net.Models.Protocol.Json.AuthenticationCeremony.VerifyAssertion;
 using WebAuthn.Net.Models.Protocol.Json.RegistrationCeremony.CreateCredential;
-using WebAuthn.Net.Models.Protocol.Json.RegistrationCeremony.CreateOptions;
 using WebAuthn.Net.Models.Protocol.RegistrationCeremony.CreateOptions;
 using WebAuthn.Net.Services.AuthenticationCeremony;
 using WebAuthn.Net.Services.AuthenticationCeremony.Models.CreateOptions;
@@ -22,6 +18,7 @@ using WebAuthn.Net.Services.RegistrationCeremony.Models.CreateCredential;
 using WebAuthn.Net.Services.RegistrationCeremony.Models.CreateOptions;
 using WebAuthn.Net.Services.Serialization.Cose.Models.Enums;
 using WebAuthn.Net.Services.Static;
+using AuthenticationService=RelayChat_Identity.Services.AuthenticationService;
 
 namespace RelayChat_Identity.Controllers;
 
@@ -33,7 +30,9 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
     AuthenticationCeremonyHandleService authenticationCeremonyHandleService,
     UserManager<User> userManager,
     SignInManager<User> signInManager,
-    IMemoryCache memoryCache) : ControllerBase
+    IMemoryCache memoryCache,
+    AuthenticationService authenticationService,
+    RefreshTokenService refreshTokenService) : ControllerBase
 {
     private const string RegisterUserCacheKey = "register-user";
     private const string PasskeyPassword = "PasskeyPassword";
@@ -163,6 +162,7 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
     }
     
     [HttpPost("login/2")]
+    [ProducesResponseType(typeof(TokenDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> Login2([FromBody] AuthenticationResponseJSON loginResponse)
     {
         var authenticationCeremonyId = await authenticationCeremonyHandleService.ReadAsync(HttpContext);
@@ -190,21 +190,59 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
         }
 
         var email = Encoding.UTF8.GetString(userHandle);
-        
-        var signInResult = await signInManager.PasswordSignInAsync(email, PasskeyPassword, true, false);
-        if (!signInResult.Succeeded || User.Identity == null)
+
+        var tokens = await SignInUser(email);
+        if (tokens == null)
         {
             return Unauthorized();
         }
         
-        return Ok();
+        return Ok(tokens);
+    }
+    
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(TokenDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RefreshToken([FromBody] TokenDto tokenDto)
+    {
+        var accessToken = tokenDto.Token;
+        var refreshToken = tokenDto.RefreshToken;
+
+        var principal = authenticationService.GetPrincipalFromExpiredToken(accessToken);
+        if (principal?.Identity?.Name == null)
+        {
+            return BadRequest("Invalid access token or refresh token");
+        }
+
+        var username = principal.Identity.Name;
+
+        if (!await refreshTokenService.CheckRefreshToken(username, refreshToken))
+        {
+            return BadRequest("Invalid access token or refresh token");
+        }
+
+        var newAccessToken =
+            authenticationService.CreateToken((ClaimsIdentity)principal.Identity, DateTime.UtcNow.AddHours(1));
+        var newRefreshToken = await refreshTokenService.CreateRefreshToken(username);
+
+        return Ok(new TokenDto
+        {
+            Token = newAccessToken,
+            RefreshToken = newRefreshToken
+        });
     }
 
-    [HttpPost("signout")]
-    [Authorize]
-    public async Task<IActionResult> Signout()
+    private async Task<TokenDto?> SignInUser(string email)
     {
-        await signInManager.SignOutAsync();
-        return Ok();
+        var signInResult = await signInManager.PasswordSignInAsync(email, PasskeyPassword, true, false);
+        if (!signInResult.Succeeded || User.Identity == null)
+        {
+            return null;
+        }
+        
+        var token = authenticationService.CreateToken((ClaimsIdentity)User.Identity, DateTime.UtcNow.AddHours(1));
+
+        var refresh = await refreshTokenService.CreateRefreshToken(email);
+
+        return new TokenDto { Token = token, RefreshToken = refresh };
     }
 }

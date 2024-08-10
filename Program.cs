@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -36,11 +35,42 @@ webBuilder.Services.AddDbContext<RelayChatIdentityContext>(
 webBuilder.Services.AddIdentity<User, Role>()
     .AddEntityFrameworkStores<RelayChatIdentityContext>();
 
-webBuilder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+webBuilder.Services.AddAuthentication(options =>
     {
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-        options.SlidingExpiration = true;
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.SaveToken = true;
+        options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(webBuilder.Configuration
+                    .GetSection(nameof(AppSettings.JWT)).GetValue<string>(nameof(JwtAppSettings.Secret))
+                ?? throw new Exception("NO SIGNING KEY DEFINED!")
+            )),
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                // If the request is for our hub...
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/signalr")))
+                {
+                    // Read the token out of the query string
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 webBuilder.Services.Configure<IdentityOptions>(options =>
@@ -60,13 +90,15 @@ webBuilder.Services.Configure<IdentityOptions>(options =>
 
 webBuilder.Services.AddWebAuthnSqlServer(configureSqlServer: sqlServer =>
 {
-    sqlServer.ConnectionString = webBuilder.Configuration.GetConnectionString("DbContext") ??
-                                 throw new Exception("DB CONNECTION STRING NOT FOUND!");
+    sqlServer.ConnectionString = webBuilder.Configuration.GetConnectionString("DbContext")
+                                 ?? throw new Exception("DB CONNECTION STRING NOT FOUND!");
 });
 
 webBuilder.Services.AddScoped<AppSettings>();
 webBuilder.Services.AddScoped<RegistrationCeremonyHandleService>();
 webBuilder.Services.AddScoped<AuthenticationCeremonyHandleService>();
+webBuilder.Services.AddScoped<RefreshTokenService>();
+webBuilder.Services.AddScoped<AuthenticationService>();
 
 var app = webBuilder.Build();
 
@@ -84,8 +116,6 @@ if (app.Environment.IsProduction())
 
 app.UseStaticFiles();
 app.UseRouting();
-
-app.UseCookiePolicy();
 
 app.UseAuthentication();
 app.UseAuthorization();

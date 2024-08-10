@@ -89,7 +89,8 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
     
     [HttpPost]
     [Route("registration/2")]
-    public async Task<IActionResult> Register2([FromBody] RegistrationResponseJSON registrationResponse)
+    [ProducesResponseType(typeof(TokenDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Register2([FromBody] Registration2Dto registrationResponse)
     {
         var registrationCeremonyId = await registrationCeremonyHandleService.ReadAsync(HttpContext);
 
@@ -109,8 +110,8 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
         var result = await registrationCeremonyService.CompleteCeremonyAsync(httpContext: HttpContext,
             request: new CompleteRegistrationCeremonyRequest(
                 registrationCeremonyId: registrationCeremonyId,
-                description: "Passkey",
-                response: registrationResponse),
+                description: registrationResponse.TokenDescription,
+                response: registrationResponse.ResponseJson),
             cancellationToken: CancellationToken.None);
 
         if (result.HasError)
@@ -134,7 +135,13 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
             return UnprocessableEntity(createResult.Errors.Select(e => e.Description).ToList());
         }
         
-        return Ok();
+        var tokens = await SignInUser(registerDto.Email);
+        if (tokens == null)
+        {
+            return Unauthorized();
+        }
+        
+        return Ok(tokens);
     }
 
     [HttpPost("login/1")]
@@ -245,4 +252,6 @@ public class AuthController(IRegistrationCeremonyService registrationCeremonySer
 
         return new TokenDto { Token = token, RefreshToken = refresh };
     }
+
+    public record Registration2Dto(RegistrationResponseJSON ResponseJson, string TokenDescription);
 }

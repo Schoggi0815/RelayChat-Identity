@@ -8,6 +8,9 @@ public class User : IdentityUser<Guid>, IDtoAble<UnrelatedUserDto>
 {
     public List<Role> Roles { get; set; } = [];
 
+    public List<FriendRequest> SentFriendRequests { get; set; } = [];
+    public List<FriendRequest> ReceivedFriendRequests { get; set; } = [];
+
     [MaxLength(255)]
     public required string DisplayName { get; set; }
 

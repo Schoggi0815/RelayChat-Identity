@@ -6,7 +6,7 @@ namespace RelayChat_Identity.Models;
 
 public class RelayChatIdentityContext(DbContextOptions<RelayChatIdentityContext> options) : IdentityDbContext<User, Role, Guid>(options)
 {
-    public DbSet<Test> Tests { get; set; }
+    public DbSet<FriendRequest> FriendRequests { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -20,6 +20,20 @@ public class RelayChatIdentityContext(DbContextOptions<RelayChatIdentityContext>
                 entityType.SetTableName(tableName[aspNetTablePrefix.Length..]);
 
         }
+
+        modelBuilder
+            .Entity<FriendRequest>()
+            .Property(fr => fr.CreatedAt)
+            .HasDefaultValueSql("getdate()");
+
+        modelBuilder
+            .Entity<User>()
+            .HasMany<User>()
+            .WithMany()
+            .UsingEntity<FriendRequest>(
+                r => r.HasOne<User>(fr => fr.Sender).WithMany(u => u.SentFriendRequests),
+        l => l.HasOne<User>(fr => fr.Receiver).WithMany(u => u.ReceivedFriendRequests),
+        fr => fr.HasKey(frInner => new {frInner.SenderId, frInner.ReceiverId}));
 
         modelBuilder
                 .Entity<User>()

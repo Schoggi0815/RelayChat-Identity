@@ -5,6 +5,7 @@
     <file url="file://$PROJECT_DIR$/Migrations/Sql/002_AddUsers.sql" dialect="AZURE" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/003_RemoveRefreshToken.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/004_AddBackRefreshToken.sql" dialect="TSQL" />
+    <file url="file://$PROJECT_DIR$/Migrations/Sql/005_AddFriends.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/WebAuthn/WebAuthnSetup.sql" dialect="AZURE" />
   </component>
 </project>

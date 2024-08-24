@@ -11,4 +11,79 @@ public class UserService(RelayChatIdentityContext db)
         var users = await db.Users.Where(u => u.Id != currentUserId).ToListAsync();
         return users.ToDtos().ToList();
     }
+
+    public async Task<List<User>> GetFriends(Guid userId)
+    {
+        var friendRequests = db.FriendRequests.Include(fr => fr.Sender).Include(fr => fr.Receiver)
+            .Where(fr => fr.Accepted);
+
+        var sent = await friendRequests.Where(fr => fr.SenderId == userId).Select(fr => fr.Receiver).ToListAsync();
+        var received = await friendRequests.Where(fr => fr.ReceiverId == userId).Select(fr => fr.Sender).ToListAsync();
+
+        var friends = sent.Concat(received);
+        return friends.Select(f => f!).ToList();
+    }
+
+    public async Task<List<FriendRequest>> GetSentFriendRequests(Guid userId)
+    {
+        var friendRequests = db.FriendRequests.Where(fr => fr.SenderId == userId && !fr.Accepted)
+            .Include(fr => fr.Receiver);
+        
+        return await friendRequests.ToListAsync();
+    }
+
+    public async Task<List<FriendRequest>> GetReceivedFriendRequests(Guid userId)
+    {
+        var friendRequests = db.FriendRequests.Where(fr => fr.ReceiverId == userId && !fr.Accepted)
+            .Include(fr => fr.Sender);
+
+        return await friendRequests.ToListAsync();
+    }
+
+    public async Task<FriendRequest?> SendFriendRequest(Guid senderId, Guid receiverId)
+    {
+        var receiver = await db.Users.FindAsync(receiverId);
+        if (receiver == null)
+        {
+            return null;
+        }
+        
+        var existing = await db.FriendRequests.SingleOrDefaultAsync(fr =>
+            fr.SenderId == senderId && fr.ReceiverId == receiverId
+            || fr.ReceiverId == senderId && fr.SenderId == receiverId);
+
+        if (existing != null)
+        {
+            return null;
+        }
+
+        var friendRequest = new FriendRequest
+        {
+            SenderId = senderId,
+            ReceiverId = receiverId,
+            Receiver = receiver,
+            Accepted = false,
+        };
+
+        db.FriendRequests.Add(friendRequest);
+        await db.SaveChangesAsync();
+        return friendRequest;
+    }
+
+    public async Task<User?> AcceptFriendRequest(Guid senderId, Guid receiverId)
+    {
+        var friendRequest = await db.FriendRequests.Include(fr => fr.Sender).SingleOrDefaultAsync(fr =>
+            fr.SenderId == senderId && fr.ReceiverId == receiverId && !fr.Accepted);
+
+        if (friendRequest == null)
+        {
+            return null;
+        }
+
+        friendRequest.Accepted = true;
+        friendRequest.AcceptedAt = DateTimeOffset.Now;
+        await db.SaveChangesAsync();
+
+        return friendRequest.Sender;
+    }
 }

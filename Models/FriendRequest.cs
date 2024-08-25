@@ -11,6 +11,7 @@ public class FriendRequest : IDtoAble<FriendRequestDto>
     public DateTimeOffset CreatedAt { get; set; }
     public bool Accepted { get; set; }
     public DateTimeOffset? AcceptedAt { get; set; }
+    public bool Read { get; set; }
     
     public FriendRequestDto ToDto() => new(this);
 }

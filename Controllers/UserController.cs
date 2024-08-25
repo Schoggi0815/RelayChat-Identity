@@ -79,6 +79,52 @@ public class UserController(UserService userService) : ControllerBase
 
         return Ok(sender.ToDto());
     }
+    
+    [HttpPost("friend-requests/read/{senderId:guid}")]
+    public async Task<IActionResult> MarkFriendRequestAsRead(Guid senderId)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var unreadFriendRequests = await userService.MarkFriendRequestAsRead(senderId, Guid.Parse(userId));
+        if (unreadFriendRequests == null)
+        {
+            return NotFound("Friend request not found");
+        }
+
+        return Ok(unreadFriendRequests.ToDtos());
+    }
+    
+    [HttpPost("friend-requests/read")]
+    public async Task<IActionResult> MarkAllFriendRequestAsRead()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        await userService.MarkAllFriendRequestsAsRead(Guid.Parse(userId));
+
+        return NoContent();
+    }
+    
+    [HttpGet("friend-requests/unread")]
+    public async Task<IActionResult> GetUnreadFriendRequests()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var unreadFriendRequests = await userService.GetUnreadFriendRequests(Guid.Parse(userId));
+
+        return Ok(unreadFriendRequests.ToDtos());
+    }
 
     [HttpPost("{receiverId:guid}/friends")]
     public async Task<IActionResult> SendFriendRequest(Guid receiverId)

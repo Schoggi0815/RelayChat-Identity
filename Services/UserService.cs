@@ -86,4 +86,46 @@ public class UserService(RelayChatIdentityContext db)
 
         return friendRequest.Sender;
     }
+
+    public async Task<List<FriendRequest>?> MarkFriendRequestAsRead(Guid senderId, Guid receiverId)
+    {
+        var friendRequest = await db.FriendRequests.SingleOrDefaultAsync(fr =>
+            fr.SenderId == senderId && fr.ReceiverId == receiverId && !fr.Read);
+
+        if (friendRequest == null)
+        {
+            return null;
+        }
+
+        friendRequest.Read = true;
+        await db.SaveChangesAsync();
+
+        var unreadFriendRequests = await db.FriendRequests
+            .Include(fr => fr.Sender)
+            .Where(fr => fr.SenderId == senderId && fr.ReceiverId == receiverId && !fr.Read)
+            .ToListAsync();
+
+        return unreadFriendRequests;
+    }
+    
+    public async Task MarkAllFriendRequestsAsRead(Guid receiverId)
+    {
+        var friendRequests = await db.FriendRequests.Where(fr => fr.ReceiverId == receiverId && !fr.Read).ToListAsync();
+        foreach (var friendRequest in friendRequests)
+        {
+            friendRequest.Read = true;
+        }
+
+        await db.SaveChangesAsync();
+    }
+    
+    public async Task<List<FriendRequest>> GetUnreadFriendRequests(Guid receiverId)
+    {
+        var friendRequests = await db.FriendRequests
+            .Include(fr => fr.Sender)
+            .Where(fr => fr.ReceiverId == receiverId && !fr.Read)
+            .ToListAsync();
+
+        return friendRequests;
+    }
 }

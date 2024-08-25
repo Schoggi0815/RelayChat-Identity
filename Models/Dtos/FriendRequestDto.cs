@@ -6,4 +6,5 @@ public class FriendRequestDto(FriendRequest friendRequest)
     public Guid ReceiverId { get; set; } = friendRequest.ReceiverId;
     public UnrelatedUserDto? Sender { get; set; } = friendRequest.Sender?.ToDto();
     public UnrelatedUserDto? Receiver { get; set; } = friendRequest.Receiver?.ToDto();
+    public bool Read { get; set; } = friendRequest.Read;
 }

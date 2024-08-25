@@ -8,6 +8,7 @@
     <file url="file://$PROJECT_DIR$/Migrations/Sql/005_AddFriends.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/006_FriendRequestAcceptAtNullable.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/007_FriendRequestReadStatus.sql" dialect="TSQL" />
+    <file url="file://$PROJECT_DIR$/Migrations/Sql/008_AddMessages.sql" dialect="TSQL" />
     <file url="file://$PROJECT_DIR$/Migrations/Sql/WebAuthn/WebAuthnSetup.sql" dialect="AZURE" />
   </component>
 </project>

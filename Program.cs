@@ -100,6 +100,7 @@ webBuilder.Services.AddScoped<AuthenticationCeremonyHandleService>();
 webBuilder.Services.AddScoped<RefreshTokenService>();
 webBuilder.Services.AddScoped<AuthenticationService>();
 webBuilder.Services.AddScoped<UserService>();
+webBuilder.Services.AddScoped<MessageService>();
 
 var app = webBuilder.Build();
 

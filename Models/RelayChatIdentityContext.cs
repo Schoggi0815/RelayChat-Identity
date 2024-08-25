@@ -7,6 +7,7 @@ namespace RelayChat_Identity.Models;
 public class RelayChatIdentityContext(DbContextOptions<RelayChatIdentityContext> options) : IdentityDbContext<User, Role, Guid>(options)
 {
     public DbSet<FriendRequest> FriendRequests { get; set; }
+    public DbSet<DirectMessage> DirectMessages { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +35,18 @@ public class RelayChatIdentityContext(DbContextOptions<RelayChatIdentityContext>
                 r => r.HasOne<User>(fr => fr.Sender).WithMany(u => u.SentFriendRequests),
         l => l.HasOne<User>(fr => fr.Receiver).WithMany(u => u.ReceivedFriendRequests),
         fr => fr.HasKey(frInner => new {frInner.SenderId, frInner.ReceiverId}));
+
+        modelBuilder
+            .Entity<DirectMessage>()
+            .HasOne<User>(dm => dm.Sender)
+            .WithMany()
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder
+            .Entity<DirectMessage>()
+            .HasOne<User>(dm => dm.Receiver)
+            .WithMany()
+            .OnDelete(DeleteBehavior.NoAction);
 
         modelBuilder
                 .Entity<User>()

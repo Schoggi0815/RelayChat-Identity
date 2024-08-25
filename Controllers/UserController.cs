@@ -22,6 +22,34 @@ public class UserController(UserService userService) : ControllerBase
         
         return Ok(await userService.SearchUsers(Guid.Parse(userId)));
     }
+    
+    [HttpGet("{userId:guid}")]
+    public async Task<IActionResult> GetUserInfo(Guid userId)
+    {
+        var user = await userService.GetUser(userId);
+        if (user == null)
+        {
+            return NotFound();
+        }
+        return Ok(user.ToDto());
+    }
+    
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMyUserInfo()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+        {
+            return Forbid();
+        }
+        
+        var user = await userService.GetUser(Guid.Parse(userId));
+        if (user == null)
+        {
+            return NotFound();
+        }
+        return Ok(user.ToDto());
+    }
 
     [HttpGet("friends")]
     public async Task<IActionResult> GetFriends()

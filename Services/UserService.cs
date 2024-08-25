@@ -12,6 +12,11 @@ public class UserService(RelayChatIdentityContext db)
         return users.ToDtos().ToList();
     }
 
+    public async Task<User?> GetUser(Guid userId)
+    { 
+        return await db.Users.FindAsync(userId);
+    }
+
     public async Task<List<User>> GetFriends(Guid userId)
     {
         var friendRequests = db.FriendRequests.Include(fr => fr.Sender).Include(fr => fr.Receiver)

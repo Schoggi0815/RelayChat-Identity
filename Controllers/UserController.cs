@@ -143,4 +143,22 @@ public class UserController(UserService userService) : ControllerBase
 
         return Ok(friendRequest.ToDto());
     }
+
+    [HttpDelete("friends/{friendId:guid}")]
+    public async Task<IActionResult> RemoveFriend(Guid friendId)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+        {
+            return Forbid();
+        }
+
+        var friendRequest = await userService.RemoveFriend(Guid.Parse(userId), friendId);
+        if (friendRequest == null)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
 }

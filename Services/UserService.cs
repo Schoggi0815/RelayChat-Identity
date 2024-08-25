@@ -128,4 +128,24 @@ public class UserService(RelayChatIdentityContext db)
 
         return friendRequests;
     }
+
+    public async Task<FriendRequest?> RemoveFriend(Guid userId, Guid friendId)
+    {
+        var friendRequest = await db.FriendRequests
+            .Where(fr =>
+                fr.SenderId == userId && fr.ReceiverId == friendId
+                || fr.ReceiverId == userId && fr.SenderId == friendId)
+            .Where(fr => fr.Accepted)
+            .SingleOrDefaultAsync();
+
+        if (friendRequest == null)
+        {
+            return null;
+        }
+
+        db.Entry(friendRequest).State = EntityState.Deleted;
+        await db.SaveChangesAsync();
+
+        return friendRequest;
+    }
 }

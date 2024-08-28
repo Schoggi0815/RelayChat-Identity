@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using RelayChat_Identity.Hubs;
 using RelayChat_Identity.Models;
 using RelayChat_Identity.Services;
 using WebAuthn.Net.Storage.SqlServer.Configuration.DependencyInjection;
@@ -94,6 +95,8 @@ webBuilder.Services.AddWebAuthnSqlServer(configureSqlServer: sqlServer =>
                                  ?? throw new Exception("DB CONNECTION STRING NOT FOUND!");
 });
 
+webBuilder.Services.AddSignalR();
+
 webBuilder.Services.AddScoped<AppSettings>();
 webBuilder.Services.AddScoped<RegistrationCeremonyHandleService>();
 webBuilder.Services.AddScoped<AuthenticationCeremonyHandleService>();
@@ -124,6 +127,7 @@ app.UseAuthorization();
 
 app.UsePathBase("/api");
 app.MapControllerRoute("default", "{controller}/{action=Index}/{id?}");
+app.MapHub<DirectMessageHub>("/signalr");
 
 app.MapFallbackToFile("index.html");
 

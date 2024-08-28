@@ -11,4 +11,15 @@ public static class DtoAbleExtensions
     {
         return models.Select(model => model.ToDto());
     }
+    
+    public static IPaginationDto<TDto> ToDtos<TDto>(this IPaginationDto<IDtoAble<TDto>> paginationDto)
+    {
+        return new PaginationDto<TDto>
+        {
+            Offset = paginationDto.Offset,
+            Take = paginationDto.Take,
+            Items = paginationDto.Items.ToDtos().ToList(),
+            HasMore = paginationDto.HasMore,
+        };
+    }
 }

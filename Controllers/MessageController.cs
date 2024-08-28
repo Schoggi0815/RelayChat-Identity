@@ -12,7 +12,7 @@ namespace RelayChat_Identity.Controllers;
 public class MessageController(MessageService messageService) : ControllerBase
 {
     [HttpGet("{otherUserId:guid}")]
-    public async Task<IActionResult> GetChatMessages(Guid otherUserId)
+    public async Task<IActionResult> GetChatMessages(Guid otherUserId, int offset, int take)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userId == null)
@@ -20,7 +20,7 @@ public class MessageController(MessageService messageService) : ControllerBase
             return Forbid();
         }
 
-        var messages = await messageService.GetChatMessages(Guid.Parse(userId), otherUserId);
+        var messages = await messageService.GetChatMessages(Guid.Parse(userId), otherUserId, offset, take);
         return Ok(messages.ToDtos());
     }
 }
